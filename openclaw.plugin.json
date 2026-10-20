@@ -1,0 +1,96 @@
+{
+  "id": "webhook-upload-ingress",
+  "name": "Webhook Upload Ingress",
+  "description": "Authenticated file-upload ingress: clients upload files, each batch goes to an agent through /hooks/agent, and an outgoing folder is served back.",
+  "version": "0.1.0",
+  "categories": ["documents-files"],
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "description": "EITHER inline settings OR configFile (a JSON file with the same keys); next to configFile only service_name and identity_header may be set, as overrides.",
+    "patternProperties": {
+      "^_": { "description": "Comment keys (ignored)." }
+    },
+    "properties": {
+      "configFile": {
+        "type": "string",
+        "description": "Path to a JSON config file with the keys below (~ expands). Excludes the inline settings."
+      },
+      "listen": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["host", "port"],
+        "properties": {
+          "host": { "type": "string", "enum": ["127.0.0.1", "::1", "localhost"], "description": "Loopback address only." },
+          "port": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        }
+      },
+      "allowed_logins": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "description": "Identity-header values that are allowed (set by the trusted reverse proxy)."
+      },
+      "identity_header": {
+        "type": "string",
+        "default": "Tailscale-User-Login",
+        "description": "Request header holding the proxy-verified identity."
+      },
+      "token_file": {
+        "type": ["string", "null"],
+        "description": "File (mode exactly 0600) holding the Bearer token clients may use instead of an identity header."
+      },
+      "openclaw_config": {
+        "type": "string",
+        "description": "OpenClaw config whose hooks.token authenticates /hooks/agent calls. Default: $OPENCLAW_CONFIG_PATH, else ~/.openclaw/openclaw.json."
+      },
+      "gateway_url": {
+        "type": "string",
+        "default": "http://127.0.0.1:18789",
+        "description": "Gateway base URL; batches are posted to <gateway_url>/hooks/agent."
+      },
+      "intake_url": {
+        "type": ["string", "null"],
+        "description": "Optional URL that receives one JSON incident when a batch exhausts dispatch_attempts."
+      },
+      "inbox": { "type": "string", "description": "Directory for uploaded batches. Default: ~/.openclaw/webhook-upload-ingress/inbox." },
+      "outgoing": { "type": "string", "description": "Directory of files served back to clients. Default: ~/.openclaw/webhook-upload-ingress/outgoing." },
+      "state_dir": { "type": "string", "description": "Directory for relay-state.json and the mode file. Default: ~/.openclaw/webhook-upload-ingress/state." },
+      "max_file_bytes": { "type": "integer", "minimum": 1, "default": 209715200 },
+      "max_request_bytes": { "type": "integer", "minimum": 1, "default": 1073741824 },
+      "quiet_period": { "type": "number", "minimum": 0, "default": 300, "description": "Seconds without new files before a batch is dispatched." },
+      "dispatch_attempts": { "type": "integer", "minimum": 1, "default": 5 },
+      "service_name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]{1,64}$",
+        "default": "webhook-upload-ingress",
+        "description": "Name used in the Server header, log lines and incident ids."
+      },
+      "hook": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["agentId", "instruction"],
+        "description": "The /hooks/agent payload fields; only configured fields are sent.",
+        "properties": {
+          "agentId": { "type": "string" },
+          "instruction": { "type": "string", "description": "First line of the message the agent receives." },
+          "name": { "type": "string" },
+          "deliver": { "type": "boolean" },
+          "channel": { "type": "string" },
+          "accountId": { "type": "string" },
+          "to": { "type": "string" },
+          "model": { "type": "string" },
+          "thinking": { "type": "string" },
+          "timeoutSeconds": { "type": "number", "exclusiveMinimum": 0 },
+          "wakeMode": { "type": "string", "enum": ["now", "next-heartbeat"] }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "token_file": { "label": "Token file", "placeholder": "~/.openclaw/webhook-upload-ingress/token" },
+    "configFile": { "label": "Config file", "placeholder": "~/.openclaw/webhook-upload-ingress/config.json" }
+  }
+}
