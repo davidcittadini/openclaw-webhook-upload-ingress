@@ -1,3 +1,7 @@
+## 0.1.1
+
+- Fix: with `configFile` set, keys the Gateway fills in from configSchema defaults are no longer rejected as inline settings (service failed to start).
+
 # Changelog
 
 ## 0.1.0

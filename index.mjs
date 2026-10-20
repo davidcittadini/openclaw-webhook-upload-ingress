@@ -23,7 +23,13 @@ export function resolveConfig(pluginConfig) {
     return configFromDoc(Object.fromEntries(Object.entries(pc).filter(([k]) => k !== "configFile")));
   }
   if (typeof pc.configFile !== "string" || !pc.configFile) throw new ConfigError("configFile must be a path");
-  const extra = Object.keys(pc).filter((k) => k !== "configFile" && !FILE_OVERRIDES.includes(k)).sort();
+  // The Gateway materialises schema defaults into the plugin config, so a key that merely equals its schema
+  // default is not an inline setting; only explicitly different values conflict with configFile.
+  const props = (manifest.configSchema && manifest.configSchema.properties) || {};
+  const isDefault = (k) => props[k] && "default" in props[k] && JSON.stringify(props[k].default) === JSON.stringify(pc[k]);
+  const extra = Object.keys(pc)
+    .filter((k) => k !== "configFile" && !FILE_OVERRIDES.includes(k) && pc[k] !== undefined && !isDefault(k))
+    .sort();
   if (extra.length)
     throw new ConfigError(`configFile excludes inline settings (only ${FILE_OVERRIDES.join(", ")} may override it): ${extra.join(", ")}`);
   const file = pyAbspath(pyExpanduser(pc.configFile));

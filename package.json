@@ -1,6 +1,6 @@
 {
   "name": "webhook-upload-ingress",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenClaw plugin: authenticated multipart file-upload ingress that hands each batch of uploads to an agent through /hooks/agent and serves an outgoing folder back.",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,6 @@
     }
   },
   "scripts": {
-    "test": "node test/e2e.mjs"
+    "test": "node test/e2e.mjs && node test/defaults.mjs"
   }
 }
