@@ -326,3 +326,7 @@ Tests use temp directories and a local fake Gateway; they touch nothing else.
 ## License
 
 MIT
+
+### Note: Gateway-filled defaults
+
+The Gateway fills `configSchema` defaults into the plugin config before `register()`. When `configFile` is set, keys that only equal their schema default are ignored. Any key set to a different value is still rejected (see `test/defaults.mjs`).
