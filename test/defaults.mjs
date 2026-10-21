@@ -16,4 +16,15 @@ const { configPath } = tempSetup("defaults", { port: 0, hookPort: 1 });
 assert.ok(resolveConfig({ ...defaults, configFile: configPath, service_name: "photo-relay" }), "defaults + configFile resolves");
 assert.throws(() => resolveConfig({ ...defaults, configFile: configPath, quiet_period: 999 }), /quiet_period/,
   "a non-default inline value is still rejected");
-console.log("defaults: 2/2 passed");
+
+// Reviewer follow-up (Codex, 2026-10-20): a file value that differs from the schema default must survive.
+{
+  const fs2 = await import("node:fs");
+  const doc = JSON.parse(fs2.readFileSync(configPath, "utf8"));
+  doc.quiet_period = 7;
+  fs2.writeFileSync(configPath, JSON.stringify(doc));
+  const c = resolveConfig({ ...defaults, configFile: configPath });
+  const qp = c.quiet_period ?? c.quietPeriod;
+  assert.strictEqual(qp, 7, "file value differing from the schema default survives");
+}
+console.log("defaults: 3/3 passed");
