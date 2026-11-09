@@ -1,3 +1,10 @@
+## 0.2.0
+
+- Feature: accept videos. Uploads whose leading bytes are an ISO-BMFF `ftyp` box with a QuickTime/MP4 video brand
+  (iPhone .MOV, .mp4, .m4v; H.264 or HEVC) are accepted next to images; HEIC/AVIF stay images. The 415 error text is
+  now "not an image or video". Outgoing .mov/.mp4/.m4v files are listed and served as video/quicktime, video/mp4 and
+  video/x-m4v.
+
 ## 0.1.1
 
 - Fix: with `configFile` set, keys the Gateway fills in from configSchema defaults are no longer rejected as inline settings (service failed to start).
