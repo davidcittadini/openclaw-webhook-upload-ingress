@@ -17,7 +17,7 @@ a plugin background service and talks to the Gateway only through the documented
 
 1. A client uploads one or more files (`multipart/form-data`) to `POST /v1/photos`. Each file is streamed to
    `<inbox>/<batch>/<safe-name>` (mode 0600, batch directory 0700) and accepted only if it is an image container
-   (JPEG, PNG, HEIC/HEIF/AVIF, WebP, TIFF/DNG).
+   (JPEG, PNG, HEIC/HEIF/AVIF, WebP, TIFF/DNG) and videos (QuickTime .mov and MP4/M4V, H.264 or HEVC).
 2. Duplicates are skipped: a file whose SHA-256 is already recorded, or whose client-supplied `key` is already
    recorded, is reported as a duplicate and not stored again.
 3. Files are grouped into a batch per client `session`. A batch is closed after `quiet_period` seconds without new
@@ -234,7 +234,7 @@ the path names are kept for compatibility with existing clients.
 A request is all-or-nothing: if any part fails, none of its files is recorded.
 
 **Errors** are `{"error": "<reason>"}` with: 400 (malformed body or field), 401 (unauthorized), 404 (unknown
-path or file), 405 (wrong method), 411 (no Content-Length), 413 (file or request too large), 415 (not an image),
+path or file), 405 (wrong method), 411 (no Content-Length), 413 (file or request too large), 415 (not an image or video),
 429 (too many failed authentications, with `Retry-After`), 500 (internal error). Unsupported methods and malformed
 request lines get the standard HTML error page of Python's `http.server`.
 
@@ -306,7 +306,11 @@ and make sure the proxy removes any client-supplied copy of that header.
 
 ## Limitations
 
-- Accepts image files only (by content signature). Other file types are refused with 415.
+- Accepts image and video files only (by content signature: image magic bytes, or an ISO-BMFF `ftyp` box with a
+  QuickTime/MP4 video brand). Other file types are refused with 415. Videos are streamed to disk like images, so
+  `max_file_bytes` (default 200 MB) and `max_request_bytes` (default 1 GB) are the only size limits; raise
+  `max_file_bytes` for long phone videos. Outgoing `.mov`/`.mp4`/`.m4v` files are listed and served with a video
+  Content-Type.
 - One process per instance; state is a single JSON file, so very large histories make each save slower.
 - HTTP/1.0 semantics: one request per connection, no chunked uploads, no `100 Continue`.
 - The wire paths (`/v1/photos`, `/v1/mockups`) and the `album`/`auto` mode values are fixed.

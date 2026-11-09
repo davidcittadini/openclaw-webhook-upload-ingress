@@ -68,7 +68,7 @@ try {
 
   // not an image
   r = await upload([["file", { filename: "x.png", data: Buffer.from("not an image at all") }]]);
-  check("non-image -> 415", r.status === 415 && json(r).error === "not an image", r.body.toString());
+  check("non-image -> 415", r.status === 415 && json(r).error === "not an image or video", r.body.toString());
 
   // dedupe by sha and by key
   r = await upload([["session", "s1"], ["key", "k-other"], ["file", { filename: "again.png", data: PNG }]]);

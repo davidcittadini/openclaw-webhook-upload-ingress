@@ -2,7 +2,7 @@
   "id": "webhook-upload-ingress",
   "name": "Webhook Upload Ingress",
   "description": "Authenticated file-upload ingress: clients upload files, each batch goes to an agent through /hooks/agent, and an outgoing folder is served back.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "categories": ["documents-files"],
   "activation": {
     "onStartup": true

@@ -71,6 +71,12 @@ export const IMAGE_TYPES = {
   ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".heic": "image/heic", ".heif": "image/heif",
   ".webp": "image/webp", ".tif": "image/tiff", ".tiff": "image/tiff", ".dng": "image/x-adobe-dng",
 };
+// ISO-BMFF major brands of QuickTime/MP4 video (iPhone .MOV is "qt  "; HEVC and H.264 share these containers).
+const VIDEO_BRANDS = new Set(["qt  ", "isom", "iso2", "iso3", "iso4", "iso5", "iso6", "mp41", "mp42", "avc1", "M4V ", "M4VH", "M4VP",
+  "3gp4", "3gp5", "3gp6", "3g2a", "MSNV", "dash", "f4v "]);
+export const VIDEO_TYPES = { ".mov": "video/quicktime", ".mp4": "video/mp4", ".m4v": "video/x-m4v" };
+/** Every file type the relay accepts and serves: images and videos, by lower-case extension. */
+export const MEDIA_TYPES = { ...IMAGE_TYPES, ...VIDEO_TYPES };
 const URL_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,199}$/;
 export const STATE_FILE = "relay-state.json";
 const STATE_FLOATS = new Set(["last_file_at", "next_attempt_at"]); // always written as floats
@@ -600,6 +606,15 @@ export function isImage(head) {
     (at(4, 8) === "ftyp" && HEIF_BRANDS.has(at(8, 12))));
 }
 
+/** The leading bytes are a QuickTime/MP4 video container (ftyp box with a video major brand). */
+export function isVideo(head) {
+  const at = (a, b) => head.subarray(a, b).toString("latin1");
+  return at(4, 8) === "ftyp" && VIDEO_BRANDS.has(at(8, 12));
+}
+
+/** An image or a video the relay accepts. */
+export const isMedia = (head) => isImage(head) || isVideo(head);
+
 const cleanNote = (text) => Array.from(text).filter((ch) => ch === "\n" || (ch.codePointAt(0) >= 32 && ch.codePointAt(0) !== 127)).join("");
 
 function uniquePath(directory, name) {
@@ -887,7 +902,7 @@ export class Relay {
     }
   }
 
-  /** A file part's chunks, refused past max_file_bytes (413) or without an image signature (415). */
+  /** A file part's chunks, refused past max_file_bytes (413) or without an image or video signature (415). */
   async *checked(mp) {
     let size = 0;
     let head = EMPTY;
@@ -898,13 +913,13 @@ export class Relay {
       if (!sniffed) {
         head = Buffer.concat([head, data.subarray(0, 16 - head.length)]);
         if (head.length >= 16) {
-          if (!isImage(head)) throw new Reject(415, "not an image");
+          if (!isMedia(head)) throw new Reject(415, "not an image or video");
           sniffed = true;
         }
       }
       yield data;
     }
-    if (!sniffed && !isImage(head)) throw new Reject(415, "not an image");
+    if (!sniffed && !isMedia(head)) throw new Reject(415, "not an image or video");
   }
 
   async stage(req, mp, name, key) {
@@ -1212,7 +1227,7 @@ export class Relay {
 
   /** The outgoing file a URL-safe name denotes, or null (unknown, escaping, not a regular image file). */
   mockupPath(name) {
-    if (!URL_NAME.test(name || "") || name.includes("..") || !has(IMAGE_TYPES, pySplitext(name)[1].toLowerCase())) return null;
+    if (!URL_NAME.test(name || "") || name.includes("..") || !has(MEDIA_TYPES, pySplitext(name)[1].toLowerCase())) return null;
     const p = path.join(this.cfg.outgoing, name);
     if (!isRegular(p)) return null;
     if (path.dirname(pyRealpath(p)) !== pyRealpath(this.cfg.outgoing)) return null;
@@ -1585,7 +1600,7 @@ class Exchange {
     try {
       const size = fs.fstatSync(fd).size;
       if (!this.writable()) throw new PyError("BrokenPipeError");
-      this.socket.write(responseHead(this.socket, 200, "OK", [["Content-Type", IMAGE_TYPES[pySplitext(name)[1].toLowerCase()]],
+      this.socket.write(responseHead(this.socket, 200, "OK", [["Content-Type", MEDIA_TYPES[pySplitext(name)[1].toLowerCase()]],
         ["Content-Length", String(size)], ["Connection", "close"]], this.http09));
       this.status = 200;
       let left = size;
