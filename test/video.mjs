@@ -38,6 +38,9 @@ try {
   for (const brand of ["isom", "mp41", "mp42", "avc1", "iso5", "M4V ", "3gp5"]) check(`${brand.trim()} is video`, isVideo(bmff(brand)));
   for (const brand of ["heic", "heix", "mif1", "msf1", "avif"]) check(`${brand} stays an image, not a video`, isImage(bmff(brand)) && !isVideo(bmff(brand)));
   check("unknown ftyp brand is neither", !isMedia(bmff("zzzz")));
+  const bad = bmff("mp42"); bad.writeUInt32BE(7, 0);
+  check("malformed ftyp box size is not video", !isVideo(bad));
+  check("truncated 12-byte ftyp is not video", !isVideo(bmff("mp42").subarray(0, 12)));
   check("JPEG is media", isMedia(JPEG));
 
   const cfg = resolveConfig({ configFile: t.configPath });
@@ -46,9 +49,9 @@ try {
     const mov = bmff("qt  ");
     const mp4 = bmff("mp42");
     let r = await upload([["source", "album"], ["file", { filename: "IMG_0101.MOV", data: mov, type: "video/quicktime" }],
-      ["file", { filename: "IMG_0102.mp4", data: mp4, type: "video/mp4" }]]);
+      ["file", { filename: "IMG_0102.mp4", data: mp4, type: "video/mp4" }], ["file", { filename: "clip.m4v", data: bmff("M4V "), type: "video/x-m4v" }]]);
     let out = json(r);
-    check("upload mov+mp4 -> 200, 2 accepted", r.status === 200 && out.accepted.length === 2, r.body.toString());
+    check("upload mov+mp4+m4v -> 200, 3 accepted", r.status === 200 && out.accepted.length === 3, r.body.toString());
     const dir = path.join(t.inbox, out.batch || "");
     const names = out.batch && fs.existsSync(dir) ? fs.readdirSync(dir) : [];
     const saved = names.filter((n) => /\.(mov|mp4)$/i.test(n)).map((n) => fs.readFileSync(path.join(dir, n)));
@@ -67,14 +70,17 @@ try {
     const outMov = bmff("qt  ", 4096);
     fs.writeFileSync(path.join(t.outgoing, "clip-1.mp4"), outMp4);
     fs.writeFileSync(path.join(t.outgoing, "clip-2.mov"), outMov);
+    fs.writeFileSync(path.join(t.outgoing, "clip-3.M4V"), outMp4);
     r = await rawRequest(PORT, "GET", "/v1/mockups", { headers: [bearer] });
     out = json(r);
     const listed = (out.mockups || []).map((m) => m.name).sort();
-    check("outgoing list includes videos", r.status === 200 && listed.join(",") === "clip-1.mp4,clip-2.mov", r.body.toString());
+    check("outgoing list includes videos", r.status === 200 && listed.join(",") === "clip-1.mp4,clip-2.mov,clip-3.M4V", r.body.toString());
     r = await rawRequest(PORT, "GET", "/v1/mockups/clip-1.mp4", { headers: [bearer] });
     check("outgoing mp4 served as video/mp4", r.status === 200 && hdr(r, "Content-Type") === "video/mp4" && r.body.equals(outMp4));
     r = await rawRequest(PORT, "GET", "/v1/mockups/clip-2.mov", { headers: [bearer] });
     check("outgoing mov served as video/quicktime", r.status === 200 && hdr(r, "Content-Type") === "video/quicktime" && r.body.equals(outMov));
+    r = await rawRequest(PORT, "GET", "/v1/mockups/clip-3.M4V", { headers: [bearer] });
+    check("outgoing upper-case .M4V served as video/x-m4v", r.status === 200 && hdr(r, "Content-Type") === "video/x-m4v");
   } finally {
     await h.stop();
   }

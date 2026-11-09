@@ -17,7 +17,8 @@ a plugin background service and talks to the Gateway only through the documented
 
 1. A client uploads one or more files (`multipart/form-data`) to `POST /v1/photos`. Each file is streamed to
    `<inbox>/<batch>/<safe-name>` (mode 0600, batch directory 0700) and accepted only if it is an image container
-   (JPEG, PNG, HEIC/HEIF/AVIF, WebP, TIFF/DNG) and videos (QuickTime .mov and MP4/M4V, H.264 or HEVC).
+   (JPEG, PNG, HEIC/HEIF/AVIF, WebP, TIFF/DNG) and videos (QuickTime .mov and MP4/M4V containers, as the iPhone records them in H.264 or HEVC; the container
+  signature is checked, not the codec).
 2. Duplicates are skipped: a file whose SHA-256 is already recorded, or whose client-supplied `key` is already
    recorded, is reported as a duplicate and not stored again.
 3. Files are grouped into a batch per client `session`. A batch is closed after `quiet_period` seconds without new

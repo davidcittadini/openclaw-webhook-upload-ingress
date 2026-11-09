@@ -606,10 +606,13 @@ export function isImage(head) {
     (at(4, 8) === "ftyp" && HEIF_BRANDS.has(at(8, 12))));
 }
 
-/** The leading bytes are a QuickTime/MP4 video container (ftyp box with a video major brand). */
+/** The leading bytes are a QuickTime/MP4 container: a well-formed ftyp box with a video major brand. This recognises
+ * the container signature only; it does not inspect tracks or codecs. */
 export function isVideo(head) {
   const at = (a, b) => head.subarray(a, b).toString("latin1");
-  return at(4, 8) === "ftyp" && VIDEO_BRANDS.has(at(8, 12));
+  if (head.length < 16 || at(4, 8) !== "ftyp" || !VIDEO_BRANDS.has(at(8, 12))) return false;
+  const box = head.readUInt32BE(0); // size, type, major brand, minor version, then 4-byte compatible brands
+  return box >= 16 && box <= 4096 && box % 4 === 0;
 }
 
 /** An image or a video the relay accepts. */
