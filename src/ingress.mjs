@@ -8,11 +8,11 @@
 //
 //   POST /v1/photos          multipart upload: `file` parts plus optional `note`, `source` (share|album|auto),
 //                            `session` and `key` (a client file id that applies to the next `file` part). Each file
-//                            is streamed to <inbox>/<batch>/<safe-name>, accepted only if it is an image container,
+//                            is streamed to <inbox>/<batch>/<safe-name>, accepted only if it is an image or video container,
 //                            and recorded with its SHA-256 and key; a known SHA-256 or key is a duplicate.
 //   POST /v1/photos/wanted   `keys` (newline-separated): answers the keys neither recorded nor being uploaded.
 //   POST /v1/photos/done     `session`: the session's batch is dispatched now (else after `quiet_period`).
-//   GET  /v1/mockups         the outgoing image files in <outgoing>, oldest first; GET /v1/mockups/<name> streams one;
+//   GET  /v1/mockups         the outgoing image and video files in <outgoing>, oldest first; GET /v1/mockups/<name> streams one;
 //   POST /v1/mockups/ack     `name` parts or {"names": [...]}: moves them to <outgoing>/saved/.
 //   GET  /v1/config          {"mode": "auto"} when <state_dir>/mode holds `auto`, else {"mode": "album"}.
 //   GET  /v1/health          {"ok": true}, without authentication.

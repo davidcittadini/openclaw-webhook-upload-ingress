@@ -16,7 +16,7 @@ a plugin background service and talks to the Gateway only through the documented
 ## How it works
 
 1. A client uploads one or more files (`multipart/form-data`) to `POST /v1/photos`. Each file is streamed to
-   `<inbox>/<batch>/<safe-name>` (mode 0600, batch directory 0700) and accepted only if it is an image container
+   `<inbox>/<batch>/<safe-name>` (mode 0600, batch directory 0700) and accepted only if it is an image or video container
    (JPEG, PNG, HEIC/HEIF/AVIF, WebP, TIFF/DNG) and videos (QuickTime .mov and MP4/M4V containers, as the iPhone records them in H.264 or HEVC; the container
   signature is checked, not the codec).
 2. Duplicates are skipped: a file whose SHA-256 is already recorded, or whose client-supplied `key` is already
@@ -281,7 +281,7 @@ and make sure the proxy removes any client-supplied copy of that header.
 - **Size limits.** Files above `max_file_bytes` and requests above `max_request_bytes` are refused (413); form
   endpoints accept at most 1 MiB; text fields at most 64 KiB; part headers at most 8 KiB. Uploads are streamed to
   disk, never held whole in memory. Idle connections time out after 60 s.
-- **Content checks.** Only image containers are accepted (magic-byte check); file names are sanitised; the
+- **Content checks.** Only image and QuickTime/MP4 video containers are accepted (magic-byte check); file names are sanitised; the
   batch and `saved/` directories are checked not to escape their parents through symlinks; outgoing names must
   match `[A-Za-z0-9_-][A-Za-z0-9._-]{0,199}` with an image extension.
 - **No secrets or content in logs.** Log lines carry the method, path, status, batch id and counts. Tokens, request
